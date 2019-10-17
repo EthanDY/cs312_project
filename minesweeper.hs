@@ -15,6 +15,8 @@ data Grid = Grid {
     reachedA :: Bool,
     reachedB :: Bool,
     flagged :: Bool,
+    flaggedA :: Bool,
+    flaggedB :: Bool,
     num :: Int      -- Number of mines around the grid
     } deriving (Show)
 
@@ -38,8 +40,8 @@ mynot False = True
 
 initRow :: Int -> Int -> Int -> [(Int, Int)] -> [Grid]
 initRow x y length z
-    | elem (x, y) z == True = Grid {location = (x, y), mined = True, reached = False, reachedA = False, reachedB = False, flagged = False, num = 0} : initRow x (y+1) length z
-    | y < length = Grid {location = (x, y), mined = False, reached = False, reachedA = False, reachedB = False, flagged = False, num = 0} : initRow x (y+1) length z
+    | elem (x, y) z == True = Grid {location = (x, y), mined = True, reached = False, reachedA = False, reachedB = False, flagged = False, flaggedA = False, flaggedB = False, num = 0} : initRow x (y+1) length z
+    | y < length = Grid {location = (x, y), mined = False, reached = False, reachedA = False, reachedB = False, flagged = False, flaggedA = False, flaggedB = False, num = 0} : initRow x (y+1) length z
     | otherwise = []
 
 buildBoard :: Int -> Int -> Int -> Int -> [(Int, Int)] -> [[Grid]]
@@ -142,7 +144,7 @@ generateSingleBoard (h : t) c
 clickRow :: Int -> [Grid] -> Int -> [Grid]
 clickRow _ [] _ = []
 clickRow x (h : t) c
-    | c == x = Grid {location = location h, mined = mined h, reached = True, reachedA = reachedA h, reachedB = reachedB h, flagged = False, num = num h} : t
+    | c == x = Grid {location = location h, mined = mined h, reached = True, reachedA = reachedA h, reachedB = reachedB h, flagged = False, flaggedA = False, flaggedB = False, num = num h} : t
     | otherwise = h : clickRow x t (c + 1)
 
 click :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
@@ -154,7 +156,7 @@ click x y (h : t) c
 clickRowA :: Int -> [Grid] -> Int -> [Grid]
 clickRowA _ [] _ = []
 clickRowA x (h : t) c
-    | (c == x) && (not (reachedB h)) = Grid {location = location h, mined = mined h, reached = reached h, reachedA = True, reachedB = False, flagged = False, num = num h} : t
+    | (c == x) && (not (reachedB h)) = Grid {location = location h, mined = mined h, reached = reached h, reachedA = True, reachedB = False, flagged = False, flaggedA = False, flaggedB = False, num = num h} : t
     | otherwise = h : clickRowA x t (c + 1)
 
 clickA :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
@@ -166,7 +168,7 @@ clickA x y (h : t) c
 clickRowB :: Int -> [Grid] -> Int -> [Grid]
 clickRowB _ [] _ = []
 clickRowB x (h : t) c
-    | (c == x) && (not (reachedA h)) = Grid {location = location h, mined = mined h, reached = reached h, reachedA = False, reachedB = True, flagged = False, num = num h} : t
+    | (c == x) && (not (reachedA h)) = Grid {location = location h, mined = mined h, reached = reached h, reachedA = False, reachedB = True, flagged = False, flaggedA = False, flaggedB = False, num = num h} : t
     | otherwise = h : clickRowB x t (c + 1)
 
 clickB :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
@@ -179,6 +181,7 @@ countReachedRowA :: [Grid] -> Int
 countReachedRowA [] = 0
 countReachedRowA (h : t)
     | reachedA h = 1 + countReachedRowA t
+    | mined h && flaggedA h = 10 + countReachedRowA t
     | otherwise = countReachedRowA t
 
 countReachedA :: [[Grid]] -> Int -> Int
@@ -189,6 +192,7 @@ countReachedRowB :: [Grid] -> Int
 countReachedRowB [] = 0
 countReachedRowB (h : t)
     | reachedB h = 1 + countReachedRowB t
+    | mined h && flaggedB h = 10 + countReachedRowB t
     | otherwise = countReachedRowB t
 
 countReachedB :: [[Grid]] -> Int -> Int
@@ -225,6 +229,16 @@ singleWinRowCheck (h : t) c length
     | c < length = ((mined h && not (reached h)) || (not (mined h) && reached h)) && singleWinRowCheck t (c + 1) length
     | otherwise = True
 
+allMinesOnFlagRow [] = True
+allMinesOnFlagRow (h:t)
+    | mined h && mynot (flagged h) = False
+    | mynot (mined h) && flagged h = False
+    | otherwise = True && allMinesOnFlagRow t
+
+
+allMinesOnFlag [] = True
+allMinesOnFlag (h:t) = allMinesOnFlagRow h && allMinesOnFlag t
+
 multiWinRowCheck :: [Grid] -> Int -> Int -> Bool
 multiWinRowCheck [] _ _ = True
 multiWinRowCheck (h : t) c length
@@ -257,44 +271,44 @@ singleLoseBoardCheck (h : t) c width length
 
 expandUpA row column board
     | row < 0 || mined (findGrid row column board) == True || reachedA (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandUpA (row - 1) (column) board
 
 expandDownA row column board
     | row >= length board || mined (findGrid row column board) == True || reachedA (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandDownA (row + 1) (column) board
 
 expandLeftA row column board
     | column < 0 || mined (findGrid row column board) || reachedA (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandLeftA row (column - 1) board
 
 expandRightA row column board
     | column >= length (board!!0) || mined (findGrid row column board) == True || reachedA (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandRightA row (column + 1) board
 
 expandUDRLA row column board = nub (expandUpA row column board ++ expandDownA row column board ++ expandLeftA row column board ++ expandRightA row column board)
 
 expandUpB row column board
     | row < 0 || mined (findGrid row column board) == True || reachedB (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandUpB (row - 1) (column) board
 
 expandDownB row column board
     | row >= length board || mined (findGrid row column board) == True || reachedB (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandDownB (row + 1) (column) board
 
 expandLeftB row column board
     | column < 0 || mined (findGrid row column board) || reachedB (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandLeftB row (column - 1) board
 
 expandRightB row column board
     | column >= length (board!!0) || mined (findGrid row column board) == True || reachedB (findGrid row column board) == True = []
-    | num (findGrid row column board) /= 0 = [[row, column]]
+    | num (findGrid row column board) /= 0 || flagged (findGrid row column board) == True = [[row, column]]
     | otherwise = [row, column] : expandRightB row (column + 1) board
 
 expandUDRLB row column board = nub (expandUpB row column board ++ expandDownB row column board ++ expandLeftB row column board ++ expandRightB row column board)
@@ -386,7 +400,7 @@ getGridNum grid board = let (x,y) = location grid
 -- Update the column of a row's grids
 updateGridNumColumn [] _ = []
 updateGridNumColumn (h : t) board
-    = Grid {location = location h, mined = mined h,reached = reached h, reachedA = reachedA h, reachedB = reachedB h, flagged = flagged h, num = getGridNum h board} : updateGridNumColumn t board
+    = Grid {location = location h, mined = mined h,reached = reached h, reachedA = reachedA h, reachedB = reachedB h, flagged = flagged h, flaggedA = flaggedA h, flaggedB = flaggedB h, num = getGridNum h board} : updateGridNumColumn t board
 
 -- Get a new board with all grids' num updated
 updateGridNum [] _ = []
@@ -438,7 +452,7 @@ isNum (h:t) = isDigit h && isNum t
 setFlagRow :: Int -> [Grid] -> Int -> [Grid]
 setFlagRow _ [] _ = []
 setFlagRow x (h : t) c
-    | c == x = Grid {location = location h, mined = mined h, reached = reached h,reachedA = reachedA h, reachedB = reachedB h, flagged = True, num = num h} : t
+    | c == x = Grid {location = location h, mined = mined h, reached = reached h,reachedA = reachedA h, reachedB = reachedB h, flagged = mynot (flagged h), flaggedA = False, flaggedB = False, num = num h} : t
     | otherwise = h : setFlagRow x t (c + 1)
 
 setFlag :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
@@ -447,8 +461,50 @@ setFlag x y (h : t) c
     | c == y = setFlagRow x h 0 : t                 
     | otherwise = h : setFlag x y t (c + 1)
 
+setFlagRowA :: Int -> [Grid] -> Int -> [Grid]
+setFlagRowA _ [] _ = []
+setFlagRowA x (h : t) c
+    | c == x && mynot (flaggedB h) = Grid {location = location h, mined = mined h, reached = reached h,reachedA = reachedA h, reachedB = reachedB h, flagged = mynot (flagged h), flaggedA = mynot (flaggedA h), flaggedB = False, num = num h} : t
+    | otherwise = h : setFlagRowA x t (c + 1)
+
+setFlagA :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
+setFlagA _ _ [] _ = []
+setFlagA x y (h : t) c
+    | c == y = setFlagRowA x h 0 : t                 
+    | otherwise = h : setFlagA x y t (c + 1)
+
+setFlagRowB :: Int -> [Grid] -> Int -> [Grid]
+setFlagRowB _ [] _ = []
+setFlagRowB x (h : t) c
+    | c == x && mynot (flaggedA h) = Grid {location = location h, mined = mined h, reached = reached h,reachedA = reachedA h, reachedB = reachedB h, flagged = mynot (flagged h), flaggedA = flaggedA h, flaggedB = mynot (flaggedB h), num = num h} : t
+    | otherwise = h : setFlagRowB x t (c + 1)
+
+setFlagB :: Int -> Int -> [[Grid]] -> Int -> [[Grid]]
+setFlagB _ _ [] _ = []
+setFlagB x y (h : t) c
+    | c == y = setFlagRowB x h 0 : t                 
+    | otherwise = h : setFlagB x y t (c + 1)
+
 multiGameLoop :: [[Grid]] -> Int -> IO()
 multiGameLoop board round
+    | allMinesOnFlag board = do
+        putStrLn(generateColumnCoord board 0)
+        putStrLn(generateBoard board 0)
+        let scoreA = countReachedA board 0
+        let scoreB = countReachedB board 0
+        let congrats = if scoreA > scoreB
+                        then "Player A win!!! \n"
+                        else if scoreB > scoreA
+                        then "Player B win!!! \n"
+                        else "Draw!!! \n"
+        putStrLn(show(scoreA))
+        putStrLn(show(scoreB))
+        putStrLn(congrats)
+        putStrLn("Continue?")
+        putStrLn("1. Yes    2. No")
+        choose <- getValidInput 1 2
+        if choose == 1 then initGame
+        else return ()
     | multiWinBoardCheck board 0 (length (board!!0)) (length board) = do
         putStrLn(generateColumnCoord board 0)
         putStrLn(generateBoard board 0)
@@ -492,7 +548,7 @@ multiGameLoop board round
                             putStrLn(generateBoard_hide board 0)
                             putStrLn(show(countReachedA board 0))
                             putStrLn(show(countReachedB board 0))
-                            putStrLn "Player A set flag? 1.Yes 2.No"
+                            putStrLn "Player A set/cancel flag? 1.Yes 2.No"
                             flagAnsA <- getValidInput 1 2
                             putStrLn "Player A Enter Row: "
                             row <- getValidInput 0 ((length board) -1)
@@ -500,7 +556,7 @@ multiGameLoop board round
                             column <- getValidInput 0 (length (board!!0)-1)     
                             let lst = expandAreaA [] [[row, column]] board              
                             let finalboard = if flagAnsA == 1 
-                                                then setFlag column row board 0
+                                                then setFlagA column row board 0
                                                 else expandAreaClickA lst board
                             putStrLn("Loading... \n")
                             multiGameLoop (finalboard) 0
@@ -510,7 +566,7 @@ multiGameLoop board round
                             putStrLn(generateBoard_hide board 0)
                             putStrLn(show(countReachedA board 0))
                             putStrLn(show(countReachedB board 0))
-                            putStrLn "Player B set flag? 1.Yes 2.No"
+                            putStrLn "Player B set/cancel flag? 1.Yes 2.No"
                             flagAnsB <- getValidInput 1 2
                             putStrLn "Player B Enter Row: "
                             row <- getValidInput 0 ((length board) -1)
@@ -518,13 +574,26 @@ multiGameLoop board round
                             column <- getValidInput 0 (length (board!!0)-1)     
                             let lst = expandAreaB [] [[row, column]] board              
                             let finalboard = if flagAnsB == 1 
-                                                then setFlag column row board 0
+                                                then setFlagB column row board 0
                                                 else expandAreaClickB lst board
                             putStrLn("Loading... \n")
                             multiGameLoop (finalboard) 1
 
 singleGameLoop :: [[Grid]] -> String -> String -> UTCTime -> IO()
 singleGameLoop board diffString name time 
+    | allMinesOnFlag board = do
+        putStrLn(generateColumnCoord board 0)
+        putStrLn(generateSingleBoard board 0)
+        finishTime <- getCurrentTime
+        let (seconds, _) = properFraction (diffUTCTime finishTime time)
+        putStrLn ("Clear Time: " ++ show seconds ++ "s")
+        putStrLn("You Win!!! \n")
+        writeRecords diffString name seconds
+        putStrLn("Continue?")
+        putStrLn("1. Yes    2. No")
+        choose <- getValidInput 1 2
+        if choose == 1 then initGame
+        else return ()
     | singleWinBoardCheck board 0 (length (board!!0)) (length board) = do
         putStrLn(generateColumnCoord board 0)
         putStrLn(generateSingleBoard board 0)
@@ -550,7 +619,7 @@ singleGameLoop board diffString name time
     | otherwise = do
                     putStrLn(generateColumnCoord board 0)
                     putStrLn(generateSingleBoard_hide board 0)
-                    putStrLn "set flag? 1.Yes 2.No"
+                    putStrLn "set/cancel flag? 1.Yes 2.No"
                     flagAns <- getValidInput 1 2
                     putStrLn "Enter Row: "
                     row <- getValidInput 0 ((length board) -1)
