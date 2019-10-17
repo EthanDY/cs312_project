@@ -432,7 +432,8 @@ fixdel =
 getValidInput bot upp =
     do
         input <- fixdel
-        if isNum input == False then
+        if input == "-1" && bot == -1 then return (-1)
+        else if isNum input == False then
             do
                 putStrLn "Please enter a valid input"
                 getValidInput bot upp
@@ -445,6 +446,7 @@ getValidInput bot upp =
                             else do
                                 putStrLn "Please enter a valid input"
                                 getValidInput bot upp
+        
 
 isNum [] = True
 isNum (h:t) = isDigit h && isNum t
@@ -542,42 +544,56 @@ multiGameLoop board round
         if choose == 1 then initGame
         else return ()
     | otherwise = if round == 1 
-                    then
-                        do
-                            putStrLn(generateColumnCoord board 0)
-                            putStrLn(generateBoard_hide board 0)
-                            putStrLn("Player A score: " ++ show(countReachedA board 0))
-                            putStrLn("Player B score: " ++ show(countReachedB board 0))
-                            putStrLn "Player A set/cancel flag? 1.Yes 2.No"
-                            flagAnsA <- getValidInput 1 2
-                            putStrLn "Player A Enter Row: "
-                            row <- getValidInput 0 ((length board) -1)
-                            putStrLn "Player A Enter Column : "
-                            column <- getValidInput 0 (length (board!!0)-1)     
-                            let lst = expandAreaA [] [[row, column]] board              
-                            let finalboard = if flagAnsA == 1 
-                                                then setFlagA column row board 0
-                                                else expandAreaClickA lst board
-                            putStrLn("Loading... \n")
-                            multiGameLoop (finalboard) 0
-                    else
-                        do
-                            putStrLn(generateColumnCoord board 0)
-                            putStrLn(generateBoard_hide board 0)
-                            putStrLn("Player A score: " ++ show(countReachedA board 0))
-                            putStrLn("Player B score: " ++ show(countReachedB board 0))
-                            putStrLn "Player B set/cancel flag? 1.Yes 2.No"
-                            flagAnsB <- getValidInput 1 2
-                            putStrLn "Player B Enter Row: "
-                            row <- getValidInput 0 ((length board) -1)
-                            putStrLn "Player B Enter Column : "
-                            column <- getValidInput 0 (length (board!!0)-1)     
-                            let lst = expandAreaB [] [[row, column]] board              
-                            let finalboard = if flagAnsB == 1 
-                                                then setFlagB column row board 0
-                                                else expandAreaClickB lst board
-                            putStrLn("Loading... \n")
-                            multiGameLoop (finalboard) 1
+                    then do
+                        putStrLn(generateColumnCoord board 0)
+                        putStrLn(generateBoard_hide board 0)
+                        putStrLn("Player A score: " ++ show(countReachedA board 0))
+                        putStrLn("Player B score: " ++ show(countReachedB board 0))
+                        putStrLn "Player A set/cancel flag? 1.Yes 2.No"
+                        flagAnsA <- getValidInput 1 2
+                        putStrLn "Player A Enter Row: (-1 to quit)"
+                        row <- getValidInput (-1) ((length board) -1)
+                        if row == -1 then do
+                            putStrLn "Player A quit, Player B win!"
+                            initGame
+                            else do
+                                putStrLn "Player A Enter Column : (-1 to quit)"
+                                column <- getValidInput (-1) (length (board!!0)-1)   
+                                if column == -1 then do 
+                                    putStrLn "Player A quit, Player B win!"
+                                    initGame
+                                    else do
+                                        let lst = expandAreaA [] [[row, column]] board              
+                                        let finalboard = if flagAnsA == 1 
+                                                            then setFlagA column row board 0
+                                                            else expandAreaClickA lst board
+                                        putStrLn("Loading... \n")
+                                        multiGameLoop (finalboard) 0
+                    else do
+                        putStrLn(generateColumnCoord board 0)
+                        putStrLn(generateBoard_hide board 0)
+                        putStrLn("Player A score: " ++ show(countReachedA board 0))
+                        putStrLn("Player B score: " ++ show(countReachedB board 0))
+                        putStrLn "Player B set/cancel flag? 1.Yes 2.No"
+                        flagAnsB <- getValidInput 1 2
+                        putStrLn "Player B Enter Row: (-1 to quit)"
+                        row <- getValidInput (-1) ((length board) -1)
+                        if row == -1 then do
+                            putStrLn ("Player B quit, Player A win!")
+                            initGame
+                            else do
+                                putStrLn "Player B Enter Column: (-1 to quit)"
+                                column <- getValidInput (-1) (length (board!!0)-1)    
+                                if column == -1 then do
+                                    putStrLn "Player B quit, Player A win!"
+                                    initGame
+                                    else do 
+                                        let lst = expandAreaB [] [[row, column]] board              
+                                        let finalboard = if flagAnsB == 1 
+                                                            then setFlagB column row board 0
+                                                            else expandAreaClickB lst board
+                                        putStrLn("Loading... \n")
+                                        multiGameLoop (finalboard) 1
 
 singleGameLoop :: [[Grid]] -> String -> String -> UTCTime -> IO()
 singleGameLoop board diffString name time 
@@ -621,16 +637,20 @@ singleGameLoop board diffString name time
                     putStrLn(generateSingleBoard_hide board 0)
                     putStrLn "set/cancel flag? 1.Yes 2.No"
                     flagAns <- getValidInput 1 2
-                    putStrLn "Enter Row: "
-                    row <- getValidInput 0 ((length board) -1)
-                    putStrLn "Enter Column : "
-                    column <- getValidInput 0 (length (board!!0)-1)     
-                    let lst = expandArea [] [[row, column]] board              
-                    let finalboard = if flagAns == 1 
-                                        then setFlag column row board 0
-                                        else expandAreaClick lst board
-                    putStrLn("Loading... \n")
-                    singleGameLoop finalboard diffString name time
+                    putStrLn "Enter Row: (-1 to quit)"
+                    row <- getValidInput (-1) ((length board) -1)
+                    if row == -1 then initGame
+                    else do
+                        putStrLn "Enter Column : (-1 to quit)"
+                        column <- getValidInput (-1) (length (board!!0)-1) 
+                        if column == -1 then initGame
+                        else do
+                            let lst = expandArea [] [[row, column]] board              
+                            let finalboard = if flagAns == 1 
+                                                then setFlag column row board 0
+                                                else expandAreaClick lst board
+                            putStrLn("Loading... \n")
+                            singleGameLoop finalboard diffString name time
 
 initGame =
     do
