@@ -515,8 +515,8 @@ multiGameLoop board round
                         else if scoreB > scoreA
                         then "Player B win!!! \n"
                         else "Draw!!! \n"
-        putStrLn(show(scoreA))
-        putStrLn(show(scoreB))
+        putStrLn("Player A score: " ++ show(scoreA))
+        putStrLn("Player B score: " ++ show(scoreB))
         putStrLn(congrats)
         putStrLn("Continue?")
         putStrLn("1. Yes    2. No")
@@ -546,8 +546,8 @@ multiGameLoop board round
                         do
                             putStrLn(generateColumnCoord board 0)
                             putStrLn(generateBoard_hide board 0)
-                            putStrLn(show(countReachedA board 0))
-                            putStrLn(show(countReachedB board 0))
+                            putStrLn("Player A score: " ++ show(countReachedA board 0))
+                            putStrLn("Player B score: " ++ show(countReachedB board 0))
                             putStrLn "Player A set/cancel flag? 1.Yes 2.No"
                             flagAnsA <- getValidInput 1 2
                             putStrLn "Player A Enter Row: "
@@ -564,8 +564,8 @@ multiGameLoop board round
                         do
                             putStrLn(generateColumnCoord board 0)
                             putStrLn(generateBoard_hide board 0)
-                            putStrLn(show(countReachedA board 0))
-                            putStrLn(show(countReachedB board 0))
+                            putStrLn("Player A score: " ++ show(countReachedA board 0))
+                            putStrLn("Player B score: " ++ show(countReachedB board 0))
                             putStrLn "Player B set/cancel flag? 1.Yes 2.No"
                             flagAnsB <- getValidInput 1 2
                             putStrLn "Player B Enter Row: "
